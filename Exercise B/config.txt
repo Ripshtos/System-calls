@@ -1,3 +1,0 @@
-./students
-input.txt
-expectedOutput.txt
