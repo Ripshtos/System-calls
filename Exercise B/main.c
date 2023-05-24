@@ -25,6 +25,54 @@ char *readLine(int *fd)
     return line;
 }
 
+
+int compareFiles (char * file1, char * file2)
+{
+    int fd1, fd2;
+
+    fd1 = open(file1, O_RDONLY);
+    if (fd1 < 0) {
+        printf("open failed");
+        return 1;
+    }
+
+    fd2 = open(file2, O_RDONLY);
+    if (fd2 < 0) {
+        printf("open failed");
+    	return 1;
+    }
+    
+    char buffer1[1], buffer2[1];
+    int char1,char2;
+    int flag = 1;
+
+
+
+    while ( flag ) 
+    {
+        char1 = read(fd1,buffer1,1) ;
+        char2 = read(fd2,buffer2,1) ;
+
+        if ( char1 != char2 || buffer1[0] != buffer2[0])
+        {   
+            printf("Files are not equal.\n");      
+            close(fd1);
+            close(fd2);
+            return 1;
+        }
+
+        flag = (char1 == char2) && char1 != 0 && char2 != 0;
+    }    
+
+    printf("Files are equal.\n");
+
+    close(fd1);
+    close(fd2);
+
+    return 2;
+}
+
+
 int main(int argc, char *argv[])
 {
 
@@ -58,6 +106,17 @@ int main(int argc, char *argv[])
     // Open the directory
     dir = opendir(studentPath);
 
+    FILE * resultsFile = fopen("results.csv", "w+");
+
+    if (resultsFile == NULL)
+    {
+        perror("fopen");
+        closedir(dir);
+        return 1;
+    }
+
+    fprintf(resultsFile,"Name, Grade\n");   
+
     while ((entry = readdir(dir)) != NULL)
     {
 
@@ -78,6 +137,7 @@ int main(int argc, char *argv[])
         printf("%s \n", input);
         printf("%s \n", output);
 
+        printf("%s \n",entry->d_name);
         int pid = fork();
         if (pid == 0)
         {
@@ -88,6 +148,9 @@ int main(int argc, char *argv[])
                 exit(1);
             }
         }
+
+        pid = wait(NULL);
+
 
         int *inputFd = open(keyboardInputFile, O_RDONLY); //!!!!
 
@@ -101,39 +164,65 @@ int main(int argc, char *argv[])
         char *num2 = readLine(&inputFd);
         close(inputFd);
 
-        char scriptResult[1000];
 
-        
         int pid2 = fork(); // compile student project
 
         if (pid2 == 0)
         {
+            int fd = open( "studentoutput.txt", O_WRONLY );// writes to student output file
+            if (fd == -1) {
+            printf("Error opening studentoutput.txt file");
+            exit(1);
+            }
+
+            close( 1 );
+            dup( fd ); 
+
             int execute = execlp(output, output, num1, num2, (char *)NULL);
             if (execute == -1)
             {
-                printf("error compiling student file");
+                printf("error compiling student file , no access");
                 exit(1);
             }
-
-            
         }
-
 
         pid2 = wait(NULL);
 
-        int *outputFd = open(expectedOutputFile, O_RDONLY); //!!!!
+        int *outputFd = open(expectedOutputFile, O_RDONLY);
         if (outputFd == -1)
         {
             printf("error opening output file");
             exit(1);
         }
 
-        char *resultNum = readLine(&outputFd);
-
         close(outputFd);
+        
 
+        if (compareFiles("studentoutput.txt","expectedOutput.txt") == 2) // condition for student to get a 100
+        {
+            printf("in! ");
+
+            // Open the file for writing
+          
+            char * nameGrade = entry->d_name;
+            printf("%s",nameGrade);
+
+            fprintf(resultsFile,"%s,%s\n",nameGrade,"100");  
+           
+
+        }
+        else
+        {
+            char * nameGrade = entry->d_name;
+            printf("%s",nameGrade);
+
+            fprintf(resultsFile,"%s,%s\n",nameGrade,"0");  
+        }
+        
         printf("\n");
     }
+   
+    close(resultsFile); 
     closedir(dir);
     close(fd1);
 
