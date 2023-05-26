@@ -112,6 +112,7 @@ int main(int argc, char *argv[])
         closedir(dir);
         return 1;
     }
+
     char *title = "Name, Grade\n";
     int first = write(resultsFile, title, strlen(title));
 
@@ -185,22 +186,14 @@ int main(int argc, char *argv[])
 
         pid2 = wait(NULL);
 
-        int *outputFd = open(expectedOutputFile, O_RDONLY);
-        if (outputFd == -1)
-        {
-            printf("error opening output file");
-            exit(1);
-        }
-
-        close(outputFd);
+      
 
         char *nameGrade = entry->d_name;
+
         if (compareFiles("studentoutput.txt", "expectedOutput.txt") == 2) // condition for student to get a 100
         {
             printf("in! ");
-
             // Open the file for writing
-
             nameGrade = entry->d_name;
             strcat(nameGrade, ",100\n");
             int write100 = write(resultsFile, nameGrade, strlen(nameGrade));
